@@ -3,61 +3,90 @@ import json
 
 def get_earthworm_status():
     try:
+        # Inisialisasi dictionary untuk menyimpan data
+        data = {
+            'system': {},
+            'rings': {},
+            'module': {}
+        }
+
         # Jalankan perintah 'status'
         result = subprocess.run(["status"], capture_output=True, text=True, check=True)
         output = result.stdout
 
-        
-
-        # Parse status modul
-        modul = []
-        status_dict = {}
+        # Parse system information
         for line in output.split("\n"):
-            if "Alive" in line:
+            line = line.strip()
+            
+            # Parse Hostname dan OS
+            if "Hostname-OS:" in line:
+                data['system']['hostname_os'] = line.split(':', 1)[1].strip()
+            
+            # Parse Start time
+            elif "Start time (UTC):" in line:
+                data['system']['start_time'] = line.split(':', 1)[1].strip()
+            
+            # Parse Current time
+            elif "Current time (UTC):" in line:
+                data['system']['current_time'] = line.split(':', 1)[1].strip()
+            
+            # Parse Disk space
+            elif "Disk space avail:" in line:
+                data['system']['disk_space'] = int(line.split(':', 1)[1].strip().split()[0])
+            
+            # Parse Ring information
+            elif "Ring" in line and "name/key/size:" in line:
+                parts = line.split(':', 1)[1].strip().split('/')
+                ring_num = line.split()[1]  # Get ring number
+                data['rings'][ring_num] = {
+                    'name': parts[0].strip(),
+                    'key': parts[1].strip(),
+                    'size': int(parts[2].strip().split()[0])
+                }
+            
+            # Parse Version
+            elif "Startstop Version:" in line:
+                data['system']['version'] = line.split(':', 1)[1].strip()
+
+        # Parse module status
+        modules = []
+        process_section = False
+        for line in output.split("\n"):
+            if "Process  Process" in line:
+                process_section = True
+                continue
+            
+            if process_section and line.strip():
                 parts = line.split()
-                status_dict[parts[0]] = "Alive"
-                modul.append(parts[0])
-            elif "Dead" in line:
-                parts = line.split()
-                status_dict[parts[0]] = "Dead"
-                modul.append(parts[0])
-        
-        print(modul)
+                if len(parts) >= 3:
+                    module_name = parts[0]
+                    if module_name not in data['module']:
+                        data['module'][module_name] = {
+                            'status': None,
+                            'pid': None,
+                            'priority': None,
+                            'cpu_used': None,
+                            'argument': None
+                        }
+                    data['module'][module_name]['status'] = parts[2]
+                    data['module'][module_name]['pid'] = parts[1]
+                    if len(parts) >= 4:
+                        data['module'][module_name]['priority'] = parts[3]
+                    if len(parts) >= 5:
+                        data['module'][module_name]['cpu_used'] = parts[4]
+                    if len(parts) >= 6:
+                        data['module'][module_name]['argument'] = ' '.join(parts[5:])
+                    modules.append(module_name)
 
-
-        # print(status_dict)
-
-        cmd = 'ps aux | grep -E "import_generic|tpd_pick|tcpd|startstop" | grep -v grep'
-        result1 = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        
-        processes = []
-        for line in result1.stdout.strip().split("\n"):
-            parts = line.split(maxsplit=10)  # Memisahkan berdasarkan spasi
-            
-            if len(parts) < 11:
-                continue  # Skip jika tidak sesuai format
-            
-            process_info = {
-                "user": parts[0],      # Pemilik proses
-                "pid": int(parts[1]),  # Process ID
-                "cpu": float(parts[2]), # Penggunaan CPU
-                "mem": float(parts[3]), # Penggunaan Memori
-                "vsz": int(parts[4]),  # Virtual Memory Size
-                "rss": int(parts[5]),  # Resident Set Size
-                "tty": parts[6],       # Terminal terkait
-                "stat": parts[7],      # Status proses (Running, Sleeping, dll.)
-                "start": parts[8],     # Waktu proses dimulai
-                "time": parts[9],      # Total CPU Time digunakan
-                "command": parts[10]   # Perintah yang dieksekusi
-            }
-            
-            processes.append(process_info)
-        
-        json_output = json.dumps(processes, indent=4)
-        # print(json_output)
+        return data
 
     except subprocess.CalledProcessError as e:
-        print("Error menjalankan perintah status:", e)
+        print(f"Error menjalankan perintah status: {e}")
+        return None
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
 
 # Jalankan fungsi
-get_earthworm_status()
+data = get_earthworm_status()
+print(data)
