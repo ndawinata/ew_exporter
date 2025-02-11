@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/username/repo/main/assets/logo.png" width="40" style="border-radius: 50%; background-color: white; padding: 5px;">
+  <img src="https://raw.githubusercontent.com/ndawinata/ew_exporter/main/logo.png" width="40" style="border-radius: 50%; background-color: white; padding: 5px;">
 </p>
 
 # Earthworm Exporter
