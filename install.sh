@@ -1,15 +1,13 @@
 #!/bin/bash
 
-# Configure these settings at the beginning so they can run on all systems.
-# ##############################################################
-# Base directories
-INSTALL_DIR="/opt/ew_exporter"
-LOG_DIR="/opt/ew_exporter/log"
+CONFIG_FILE="config.cfg"
+
+INSTALL_DIR=$(python3 -c "import configparser; config = configparser.ConfigParser(); config.read('$CONFIG_FILE'); print(config['directories']['INSTALL_DIR'])")
+LOG_DIR=$(python3 -c "import configparser; config = configparser.ConfigParser(); config.read('$CONFIG_FILE'); print(config['directories']['LOG_DIR'])")
+EW_LINUX_BASH_PATH=$(python3 -c "import configparser; config = configparser.ConfigParser(); config.read('$CONFIG_FILE'); print(config['directories']['EW_LINUX_BASH_PATH'])")
+
+
 VENV_DIR="${INSTALL_DIR}/venv"
-EW_LINUX_BASH_PATH="/opt/earthworm/run_working/ew_linux.bash"
-
-### ##############################################################
-
 
 # Colors for output
 RED='\033[0;31m'

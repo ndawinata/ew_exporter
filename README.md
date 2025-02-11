@@ -1,135 +1,170 @@
 # Earthworm Exporter
 
-Earthworm Exporter adalah Prometheus exporter untuk memonitor status dan metrik dari Earthworm Seismic System. Exporter ini mengumpulkan informasi tentang status modul, penggunaan sumber daya, dan metrik sistem lainnya dari instalasi Earthworm.
+Prometheus exporter for Earthworm seismic processing system metrics, written in Python.
 
-## Fitur
+## Overview
 
-- Monitoring status modul Earthworm (Alive, Dead, Zombie, Not Exec)
-- Metrik penggunaan CPU dan memori per modul
-- Informasi penggunaan disk sistem
-- Metrik VSZ (Virtual Memory Size) dan RSS (Resident Set Size) per modul
-- Auto-discovery modul Earthworm yang berjalan
+Earthworm Exporter is a Prometheus exporter that collects metrics from an Earthworm seismic processing system. It exposes various metrics about the system status, ring buffers, and module states for monitoring and alerting purposes.
 
-## Persyaratan
+## Installation
 
-- Python 3.6+
-- Earthworm Seismic System yang terinstall
-- Akses ke command `status` Earthworm
-- Hak akses root/sudo untuk instalasi
+### Prerequisites
 
-## Instalasi
+- Python 3.6 or later
+- Earthworm 7.10 or later
+- Root/sudo access
+- Properly configured Earthworm environment
 
-1. Clone repository atau download source code:
+### Building and Running
 
+1. Clone the repository:
 ```bash
-git clone git@github.com:ndawinata/ew_exporter.git
+git clone https://github.com/your-repo/ew_exporter.git
 cd ew_exporter
 ```
 
-2. Konfigurasi sebelum instalasi:
-   - Edit `config.cfg` sesuai kebutuhan
-   - Pastikan environment Earthworm sudah terkonfigurasi dengan benar
+2. Configure the exporter by editing `config.cfg`:
+```ini
+[server]
+# Host to bind the exporter (default: localhost)
+host = 0.0.0.0
+port = 9877
 
-3. Jalankan script instalasi:
+[logging]
+# Log directory path
+log_dir = /opt/ew_exporter/log
+# Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+log_level = INFO
+```
 
+3. Run the installation script:
 ```bash
 sudo ./install.sh
 ```
 
-## Konfigurasi
+The installer will:
+- Create necessary directories
+- Set up Python virtual environment
+- Install required dependencies
+- Configure systemd service
+- Start the exporter
 
-Konfigurasi utama tersedia di file `config.cfg`:
+### Verifying Installation
 
-```ini
-[server]
-# Host untuk binding exporter (default: localhost)
-host = 0.0.0.0
-# Port untuk endpoint metrics (default: 9877)
-port = 9877
-
-[logging]
-# Direktori log
-log_dir = /opt/ew_exporter/log
-# Level log (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-log_level = INFO
-```
-
-## Metrics
-
-| Metric Name | Type | Description | Labels |
-|------------|------|-------------|---------|
-| system_info | Info | Informasi sistem Earthworm | hostname, version |
-| system_disk_space_bytes | Gauge | Ruang disk yang tersedia dalam bytes | - |
-| module_status | Gauge | Status modul (3=Not Exec, 2=Zombie, 1=Alive, 0=Dead) | module |
-| module_cpu_usage | Gauge | Penggunaan CPU per modul (%) | module |
-| module_memory_usage | Gauge | Penggunaan memori per modul (%) | module |
-| module_virtual_memory | Gauge | Virtual memory size (VSZ) | module |
-| module_resident_memory | Gauge | Resident set size (RSS) | module |
-
-## Endpoint
-
-Metrics tersedia di endpoint `/metrics`:
-```
-http://localhost:9877/metrics
-```
-
-## Contoh Output Metrics
-
-```
-# HELP system_info Information about the system
-# TYPE system_info gauge
-system_info{hostname="SEEW1 - Linux 5.14.0",version="v7.10 2019-06-13"} 1
-
-# HELP module_status Module status (3=Not Exec, 2=Zombie, 1=Alive, 0=Dead)
-# TYPE module_status gauge
-module_status{module="startstop"} 1
-module_status{module="import_generic"} 1
-module_status{module="tpd_pick"} 1
-module_status{module="tcpd"} 1
-
-# HELP module_cpu_usage CPU usage per module (%)
-# TYPE module_cpu_usage gauge
-module_cpu_usage{module="startstop"} 0.0
-module_cpu_usage{module="import_generic"} 3.4
-```
-
-## Grafana Dashboard
-
-Tersedia template dashboard Grafana di direktori `dashboards/`. Dashboard ini mencakup:
-- Overview status sistem
-- Status dan metrik modul
-- Penggunaan sumber daya
-- Historis status modul
-
-## Troubleshooting
-
-### Service Tidak Berjalan
+Check if the exporter is running:
 ```bash
-# Cek status service
 sudo systemctl status ew_exporter
+```
 
-# Cek logs
+View logs:
+```bash
 sudo journalctl -u ew_exporter -f
 ```
 
-### Metrics Tidak Tersedia
-1. Pastikan port tidak digunakan oleh aplikasi lain
-2. Verifikasi hak akses ke command Earthworm
-3. Cek file log di `/opt/ew_exporter/log/ew_exporter.log`
+## Configuration
+
+### Exporter Configuration
+
+The exporter can be configured using `config.cfg`:
+
+```ini
+[server]
+# Network interface to bind (0.0.0.0 for all interfaces)
+host = 0.0.0.0
+# Port to expose metrics
+port = 9877
+
+[logging]
+# Log directory path
+log_dir = /opt/ew_exporter/log
+# Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+log_level = INFO
+```
+
+### Systemd Service
+
+The exporter runs as a systemd service with the following features:
+- Automatic startup on boot
+- Automatic restart on failure
+- Process isolation
+- Proper logging
+
+## Metrics
+
+The exporter exposes the following metrics at `/metrics`:
+
+### System Metrics
+
+| Metric | Description | Type |
+|--------|-------------|------|
+| `system_info` | Information about the Earthworm system | Info |
+| `system_disk_space_bytes` | Available disk space in bytes | Gauge |
+
+### Ring Buffer Metrics
+
+| Metric | Description | Type |
+|--------|-------------|------|
+| `ring_buffer_size` | Size of ring buffers | Gauge |
+| `ring_buffer_messages` | Number of messages in ring buffer | Gauge |
+
+### Module Metrics
+
+| Metric | Description | Type | Labels |
+|--------|-------------|------|--------|
+| `module_status` | Module status (3=Not Exec, 2=Zombie, 1=Alive, 0=Dead) | Gauge | module |
+| `module_cpu_usage` | CPU usage per module (%) | Gauge | module |
+| `module_memory_usage` | Memory usage per module (%) | Gauge | module |
+| `module_vsz` | Virtual memory size (vsz) | Gauge | module |
+| `module_rss` | Resident set size (rss) | Gauge | module |
+
+## Prometheus Configuration
+
+Add the following to your `prometheus.yml`:
+
+```yaml
+scrape_configs:
+  - job_name: 'earthworm'
+    static_configs:
+      - targets: ['localhost:9877']
+```
 
 ## Development
 
-Untuk berkontribusi:
-1. Fork repository
-2. Buat branch fitur
-3. Commit perubahan
-4. Buat pull request
+### Requirements
+
+Development requirements are listed in `requirements.txt`:
+```
+prometheus_client
+configparser
+```
+
+### Building from Source
+
+1. Clone the repository
+2. Install development dependencies
+3. Make your changes
+4. Test the changes
+5. Submit a pull request
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Exporter fails to start**
+   - Check if Earthworm is properly configured
+   - Verify PATH and environment variables
+   - Check logs with `journalctl -u ew_exporter -f`
+
+2. **No metrics available**
+   - Verify the exporter is running
+   - Check if the port is accessible
+   - Ensure Earthworm status command is working
 
 ## License
 
-MIT License - lihat file [LICENSE](LICENSE) untuk detail lengkap.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Kontak
+## Contributing
 
-Untuk pertanyaan dan dukungan, silakan buat issue di repository atau hubungi maintainer.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
