@@ -10,7 +10,7 @@ config = configparser.ConfigParser()
 config.read('config.cfg')
 
 # Setup logging
-log_dir = config.get('logging', 'log_dir', fallback='/opt/earthworm/run_working/log')
+log_dir = config.get('logging', 'log_dir', fallback='/opt/ew_exporter/log')
 log_level = config.get('logging', 'log_level', fallback='INFO')
 os.makedirs(log_dir, exist_ok=True)
 
@@ -36,7 +36,23 @@ module_rss = Gauge("module_resident_memory", "Resident set size (rss)", ["module
 
 def get_earthworm_status():
     try:
-        # Inisialisasi dictionary untuk menyimpan data
+        # # Inisialisasi dictionary untuk menyimpan data
+        # logging.info(f"Current PATH: {os.environ.get('PATH')}")
+        
+        # # Coba cari lokasi binary status
+        # status_cmd = None
+        # for path in os.environ.get('PATH', '').split(':'):
+        #     status_path = os.path.join(path, 'status')
+        #     if os.path.exists(status_path) and os.access(status_path, os.X_OK):
+        #         status_cmd = status_path
+        #         break
+        
+        # if not status_cmd:
+        #     logging.error("Could not find 'status' command in PATH")
+        #     return None
+
+        # logging.info(f"Using status command: {status_cmd}")
+        
         data = {
             'system': {},
             'rings': {},
@@ -44,7 +60,7 @@ def get_earthworm_status():
         }
 
         # Jalankan perintah 'status'
-        result = subprocess.run(["status"], capture_output=True, text=True, check=True)
+        result = subprocess.run(['status'], capture_output=True, text=True, check=True)
         output = result.stdout
 
         # Parse system information
