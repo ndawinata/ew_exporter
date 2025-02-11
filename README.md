@@ -1,3 +1,5 @@
+# <img src="https://raw.githubusercontent.com/ndawinata/ew_exporter/refs/heads/main/logo.png" width="30" style="border-radius: 50%; background-color: white; padding: 5px;"> Earthworm Exporter
+
 # Earthworm Exporter
 
 Prometheus exporter for Earthworm seismic processing system metrics, written in Python.
@@ -29,6 +31,11 @@ cd ew_exporter
 # Host to bind the exporter (default: localhost)
 host = 0.0.0.0
 port = 9877
+
+[directories]
+INSTALL_DIR = /opt/ew_exporter
+LOG_DIR = /opt/ew_exporter/log
+EW_LINUX_BASH_PATH = /opt/earthworm/run_working/ew_linux.bash
 
 [logging]
 # Log directory path
@@ -69,10 +76,14 @@ The exporter can be configured using `config.cfg`:
 
 ```ini
 [server]
-# Network interface to bind (0.0.0.0 for all interfaces)
+# Host to bind the exporter (default: localhost)
 host = 0.0.0.0
-# Port to expose metrics
 port = 9877
+
+[directories]
+INSTALL_DIR = /opt/ew_exporter
+LOG_DIR = /opt/ew_exporter/log
+EW_LINUX_BASH_PATH = /opt/earthworm/run_working/ew_linux.bash
 
 [logging]
 # Log directory path
