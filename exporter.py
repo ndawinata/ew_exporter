@@ -52,7 +52,8 @@ def get_earthworm_status():
         modules = []
         process_section = False
         for line in output.split("\n"):
-            if "Process  Process" in line:
+            # Skip header lines
+            if "Process  Process" in line or "Name" in line or "-------" in line:
                 process_section = True
                 continue
             
@@ -75,8 +76,39 @@ def get_earthworm_status():
                     if len(parts) >= 5:
                         data['module'][module_name]['cpu_used'] = parts[4]
                     if len(parts) >= 6:
-                        data['module'][module_name]['argument'] = ' '.join(parts[5:])
+                        data['module'][module_name]['argument'] = parts[6]
                     modules.append(module_name)
+        
+        paths = '|'.join(modules)
+        cmd = f'ps aux | grep -E "{paths}" | grep -v grep'
+        result1 = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        output1 = result1.stdout
+
+        for line in output1.split("\n"):
+            line = line.strip()
+            
+            if line:
+                parts = line.split(maxsplit=10)
+                if len(parts) >= 11:
+                    # Cari nama modul berdasarkan command path
+                    command = parts[10]
+                    module_name = None
+                    for name in modules:
+                        if name in command:
+                            module_name = name
+                            break
+
+                    if module_name:
+                        data['module'][module_name]['pid'] = int(parts[1])
+                        data['module'][module_name]['cpu_used'] = float(parts[2])
+                        data['module'][module_name]['memory_used'] = float(parts[3])
+                        data['module'][module_name]['vsz'] = int(parts[4])
+                        data['module'][module_name]['rss'] = int(parts[5])
+                        data['module'][module_name]['tty'] = parts[6]
+                        data['module'][module_name]['stat'] = parts[7]
+                        data['module'][module_name]['start'] = parts[8]
+                        data['module'][module_name]['time'] = parts[9]
+                        data['module'][module_name]['command'] = command
 
         return data
 
