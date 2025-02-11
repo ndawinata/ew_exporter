@@ -1,4 +1,4 @@
-# <img src="https://raw.githubusercontent.com/ndawinata/ew_exporter/refs/heads/main/logo.png" width="30" style="border-radius: 50%; background-color: white; padding: 5px;"> Earthworm Exporter
+![EW Exporter Logo](https://raw.githubusercontent.com/ndawinata/ew_exporter/main/logo.png)
 
 # Earthworm Exporter
 
