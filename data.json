@@ -1,0 +1,88 @@
+{
+    "system":{
+       "hostname_os":"RSEEW1 - Linux 5.14.0-362.24.1.el9_3.x86_64",
+       "start_time":"Sat Feb  8 03:36:18 2025",
+       "current_time":"Tue Feb 11 03:48:05 2025",
+       "disk_space":697434320,
+       "version":"v7.10 2019-08-13 (64 bit)"
+    },
+    "rings":{
+       "1":{
+          "name":"WAVE_RING",
+          "key":"1000",
+          "size":8196
+       },
+       "2":{
+          "name":"EEW_RING",
+          "key":"1035",
+          "size":1024
+       },
+       "3":{
+          "name":"PICK_RING",
+          "key":"1005",
+          "size":8192
+       }
+    },
+    "module":{
+       "startstop":{
+          "status":"Alive",
+          "pid":2572268,
+          "priority":"??/",
+          "cpu_used":0.0,
+          "argument":"-",
+          "memory_used":0.0,
+          "vsz":94400,
+          "rss":18776,
+          "tty":"pts/5",
+          "stat":"Sl+",
+          "start":"Feb07",
+          "time":"0:39",
+          "command":"startstop"
+       },
+       "import_generic":{
+          "status":"Alive",
+          "pid":2572269,
+          "priority":"??/",
+          "cpu_used":1.0,
+          "argument":"import_generic.d",
+          "memory_used":0.0,
+          "vsz":84980,
+          "rss":10404,
+          "tty":"pts/5",
+          "stat":"Sl+",
+          "start":"Feb07",
+          "time":"45:37",
+          "command":"import_generic import_generic.d"
+       },
+       "tpd_pick":{
+          "status":"Alive",
+          "pid":2572270,
+          "priority":"??/",
+          "cpu_used":3.4,
+          "argument":"tpd_eew.d",
+          "memory_used":0.0,
+          "vsz":22028,
+          "rss":20700,
+          "tty":"pts/5",
+          "stat":"S+",
+          "start":"Feb07",
+          "time":"148:30",
+          "command":"tpd_pick tpd_eew.d"
+       },
+       "tcpd":{
+          "status":"Alive",
+          "pid":2572271,
+          "priority":"??/",
+          "cpu_used":0.0,
+          "argument":"tcpd_new.d",
+          "memory_used":0.0,
+          "vsz":13648,
+          "rss":10904,
+          "tty":"pts/5",
+          "stat":"S+",
+          "start":"Feb07",
+          "time":"1:07",
+          "command":"tcpd tcpd_new.d"
+       }
+    }
+ }

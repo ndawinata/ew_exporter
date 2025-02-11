@@ -1,5 +1,38 @@
-import subprocess
 import json
+import time
+from prometheus_client import start_http_server, Gauge, Info
+import subprocess
+import configparser
+import logging
+import os
+# Load configuration
+config = configparser.ConfigParser()
+config.read('config.cfg')
+
+# Setup logging
+log_dir = config.get('logging', 'log_dir', fallback='/opt/earthworm/run_working/log')
+log_level = config.get('logging', 'log_level', fallback='INFO')
+os.makedirs(log_dir, exist_ok=True)
+
+logging.basicConfig(
+    level=getattr(logging, log_level),
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(f'{log_dir}/ew_exporter.log'),
+        logging.StreamHandler()  # Also log to console
+    ]
+)
+
+
+# Metrics Definitions
+system_info = Info("system_info", "Information about the system")
+disk_space = Gauge("system_disk_space_bytes", "Available disk space in bytes")
+module_status = Gauge("module_status", "Module status (3=Not Exec, 2=Zombie, 1=Alive, 0=Dead)", ["module"])
+module_cpu_usage = Gauge("module_cpu_usage", "CPU usage per module (%)", ["module"])
+module_memory_usage = Gauge("module_memory_usage", "Memory usage per module (%)", ["module"])
+module_vsz = Gauge("module_virtual_memory", "Virtual memory size (vsz)", ["module"])
+module_rss = Gauge("module_resident_memory", "Resident set size (rss)", ["module"])
+
 
 def get_earthworm_status():
     try:
@@ -119,6 +152,59 @@ def get_earthworm_status():
         print(f"Error: {e}")
         return None
 
-# Jalankan fungsi
-data = get_earthworm_status()
-print(json.dumps(data, indent=4))
+
+def update_metrics():
+    data = get_earthworm_status()
+
+    system_info.info({"hostname": data["system"]["hostname_os"], "version": data["system"]["version"]})
+    disk_space.set(data["system"]["disk_space"])
+
+    # Module Metrics
+    for module_name, module_data in data["module"].items():
+        status_value = None
+        if module_data["status"] == "Zombie":
+            status_value = 2
+        if module_data["status"] == "Not Exec":
+            status_value = 3
+        if module_data["status"] == "Dead":
+            status_value = 0
+        if module_data["status"] == "Alive":
+            status_value = 1
+        module_status.labels(module=module_name).set(status_value)
+        module_cpu_usage.labels(module=module_name).set(module_data["cpu_used"])
+        module_memory_usage.labels(module=module_name).set(module_data["memory_used"])
+        module_vsz.labels(module=module_name).set(module_data["vsz"])
+        module_rss.labels(module=module_name).set(module_data["rss"])
+
+
+# def start_exporter():
+#     """Starts the Prometheus exporter HTTP server."""
+#     start_http_server(8000)
+#     while True:
+#         update_metrics()
+#         time.sleep(10)  # Update every 10 seconds
+
+# if __name__ == "__main__":
+#     start_exporter()
+
+def main():
+    # Get server configuration
+    host = config.get('server', 'host', fallback='localhost')
+    port = config.getint('server', 'port', fallback=9877)
+
+    # Start the server
+    start_http_server(port, addr=host)
+    logging.info(f"Earthworm exporter server started at http://{host}:{port}/metrics")
+    
+    
+    # Update metrics every 15 seconds
+    while True:
+        try:
+            update_metrics()
+            time.sleep(15)
+        except Exception as e:
+            logging.error(f"Main loop error: {str(e)}")
+            time.sleep(15)
+
+if __name__ == "__main__":
+    main()
