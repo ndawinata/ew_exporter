@@ -36,23 +36,6 @@ module_rss = Gauge("module_resident_memory", "Resident set size (rss)", ["module
 
 def get_earthworm_status():
     try:
-        # # Inisialisasi dictionary untuk menyimpan data
-        # logging.info(f"Current PATH: {os.environ.get('PATH')}")
-        
-        # # Coba cari lokasi binary status
-        # status_cmd = None
-        # for path in os.environ.get('PATH', '').split(':'):
-        #     status_path = os.path.join(path, 'status')
-        #     if os.path.exists(status_path) and os.access(status_path, os.X_OK):
-        #         status_cmd = status_path
-        #         break
-        
-        # if not status_cmd:
-        #     logging.error("Could not find 'status' command in PATH")
-        #     return None
-
-        # logging.info(f"Using status command: {status_cmd}")
-        
         data = {
             'system': {},
             'rings': {},
