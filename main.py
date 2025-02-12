@@ -25,13 +25,13 @@ logging.basicConfig(
 
 
 # Metrics Definitions
-system_info = Info("system_info", "Information about the system")
-disk_space = Gauge("system_disk_space_bytes", "Available disk space in bytes")
-module_status = Gauge("module_status", "Module status (3=Not Exec, 2=Zombie, 1=Alive, 0=Dead)", ["module"])
-module_cpu_usage = Gauge("module_cpu_usage", "CPU usage per module (%)", ["module"])
-module_memory_usage = Gauge("module_memory_usage", "Memory usage per module (%)", ["module"])
-module_vsz = Gauge("module_virtual_memory", "Virtual memory size (vsz)", ["module"])
-module_rss = Gauge("module_resident_memory", "Resident set size (rss)", ["module"])
+disk_space = Gauge("ew_disk_space_bytes", "Earthworm Available disk space in bytes")
+pid = Gauge("ew_module_pid", "Earthworm Module PID", ["module"])
+module_status = Gauge("ew_module_status", "Earthworm Module status (3=Not Exec, 2=Zombie, 1=Alive, 0=Dead)", ["module"])
+module_cpu_usage = Gauge("ew_module_cpu_usage", "Earthworm Module CPU usage (%)", ["module"])
+module_memory_usage = Gauge("ew_module_memory_usage", "Earthworm Module Memory usage (%)", ["module"])
+module_vsz = Gauge("ew_module_virtual_memory", "Earthworm Module Virtual memory size (vsz) in kb", ["module"])
+module_rss = Gauge("ew_module_resident_memory", "Earthworm Module Resident set size (rss) in kb", ["module"])
 
 
 def get_earthworm_status():
@@ -132,8 +132,8 @@ def get_earthworm_status():
 
                     if module_name:
                         data['module'][module_name]['pid'] = int(parts[1])
-                        data['module'][module_name]['cpu_used'] = float(parts[2])
-                        data['module'][module_name]['memory_used'] = float(parts[3])
+                        data['module'][module_name]['cpu_used'] = round(float(parts[2]), 2)
+                        data['module'][module_name]['memory_used'] = round(float(parts[3]), 2)
                         data['module'][module_name]['vsz'] = int(parts[4])
                         data['module'][module_name]['rss'] = int(parts[5])
                         data['module'][module_name]['tty'] = parts[6]
@@ -155,7 +155,6 @@ def get_earthworm_status():
 def update_metrics():
     data = get_earthworm_status()
 
-    system_info.info({"hostname": data["system"]["hostname_os"], "version": data["system"]["version"]})
     disk_space.set(data["system"]["disk_space"])
 
     # Module Metrics
@@ -169,22 +168,12 @@ def update_metrics():
             status_value = 0
         if module_data["status"] == "Alive":
             status_value = 1
+        pid.labels(module=module_name).set(module_data["pid"])
         module_status.labels(module=module_name).set(status_value)
         module_cpu_usage.labels(module=module_name).set(module_data["cpu_used"])
         module_memory_usage.labels(module=module_name).set(module_data["memory_used"])
         module_vsz.labels(module=module_name).set(module_data["vsz"])
         module_rss.labels(module=module_name).set(module_data["rss"])
-
-
-# def start_exporter():
-#     """Starts the Prometheus exporter HTTP server."""
-#     start_http_server(8000)
-#     while True:
-#         update_metrics()
-#         time.sleep(10)  # Update every 10 seconds
-
-# if __name__ == "__main__":
-#     start_exporter()
 
 def main():
     # Get server configuration

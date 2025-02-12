@@ -106,25 +106,18 @@ The exporter exposes the following metrics at `/metrics`:
 
 | Metric | Description | Type |
 |--------|-------------|------|
-| `system_info` | Information about the Earthworm system | Info |
-| `system_disk_space_bytes` | Available disk space in bytes | Gauge |
+| `ew_disk_space_bytes` | Available disk space in bytes | Gauge |
 
-### Ring Buffer Metrics
-
-| Metric | Description | Type |
-|--------|-------------|------|
-| `ring_buffer_size` | Size of ring buffers | Gauge |
-| `ring_buffer_messages` | Number of messages in ring buffer | Gauge |
 
 ### Module Metrics
 
 | Metric | Description | Type | Labels |
 |--------|-------------|------|--------|
-| `module_status` | Module status (3=Not Exec, 2=Zombie, 1=Alive, 0=Dead) | Gauge | module |
-| `module_cpu_usage` | CPU usage per module (%) | Gauge | module |
-| `module_memory_usage` | Memory usage per module (%) | Gauge | module |
-| `module_vsz` | Virtual memory size (vsz) | Gauge | module |
-| `module_rss` | Resident set size (rss) | Gauge | module |
+| `ew_module_status` | Earthworm Module status (3=Not Exec, 2=Zombie, 1=Alive, 0=Dead) | Gauge | module |
+| `ew_module_cpu_usage` | Earthworm Module CPU usage (%) | Gauge | module |
+| `ew_module_memory_usage` | Earthworm Module Memory usage (%) | Gauge | module |
+| `ew_module_vsz` | Earthworm Module Virtual memory size (vsz) | Gauge | module |
+| `ew_module_rss` | Earthworm Module Resident set size (rss) | Gauge | module |
 
 ## Prometheus Configuration
 
