@@ -220,16 +220,19 @@ def update_metrics() -> None:
         disk_space.set(data["system"]["disk_space"])
 
         for module_name, module_data in data["module"].items():
-            status_value = {
-                "Zombie": 2,
-                "Stop": 4,
-                "Not Exec": 3,
-                "Dead": 0,
-                "Alive": 1
-            }.get(module_data["status"])
             
-            if status_value is not None:
+            if module_data.get("status") is not None:
+                status_value = {
+                    "Not Exec": 5,
+                    "Zombie": 4,
+                    "Dead": 3,
+                    "Stop": 2,
+                    "Alive": 1
+                }.get(module_data["status"])
                 module_status.labels(module=module_name).set(status_value)
+            else:
+                # 0 = Status Error
+                module_status.labels(module=module_name).set(0)
 
             allocated_memory = 0
             if module_data.get("rss") is not None and module_data.get("vsz") is not None:
