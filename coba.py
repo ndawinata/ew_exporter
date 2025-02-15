@@ -161,8 +161,6 @@ def get_earthworm_status() -> Dict[str, Any]:
                         data['module'][module_name]['argument'] = parts[6]
                     modules.append(module_name)
 
-        # print(modules)
-
         # Get detailed process info
         paths = '|'.join(modules)
         cmd = f'ps aux | grep -E "{paths}" | grep -v grep'
@@ -198,17 +196,6 @@ def get_earthworm_status() -> Dict[str, Any]:
     except Exception as e:
         logging.error(f"Error: {e}")
         return None
-    
-def cek_module_pid(module_name: str) -> int:
-    try:
-        result = subprocess.run(f'ps aux | grep -E "{module_name}" | grep -v grep', shell=True, capture_output=True, text=True)
-        output = result.stdout
-        if output:
-            return int(output.split()[1])
-        else:
-            return None
-    except subprocess.CalledProcessError:
-        return None
 
 def update_metrics() -> None:
     data = get_earthworm_status()
@@ -217,32 +204,62 @@ def update_metrics() -> None:
         return
 
     try:
-        disk_space.set(data["system"]["disk_space"])
+        # Update disk space metric
+        if "disk_space" in data.get("system", {}):
+            disk_space.set(data["system"]["disk_space"])
 
-        for module_name, module_data in data["module"].items():
-            status_value = {
-                "Zombie": 2,
-                "Stop": 4,
-                "Not Exec": 3,
-                "Dead": 0,
-                "Alive": 1
-            }.get(module_data["status"])
-            
-            if status_value is not None:
-                module_status.labels(module=module_name).set(status_value)
+        # Update module metrics
+        for module_name, module_data in data.get("module", {}).items():
+            try:
+                # Update status
+                status_value = {
+                    "Zombie": 2,
+                    "Not Exec": 3,
+                    "Dead": 0,
+                    "Alive": 1
+                }.get(module_data.get("status"))
+                
+                if status_value is not None:
+                    module_status.labels(module=module_name).set(status_value)
 
-            allocated_memory = 0
-            if module_data.get("rss") is not None and module_data.get("vsz") is not None:
-                allocated_memory = (module_data["rss"]/module_data["vsz"])*100
-            
-            pid.labels(module=module_name).set(module_data["pid"] if module_data.get("pid") else 0)
-            module_cpu_usage.labels(module=module_name).set(module_data["cpu_used"] if module_data.get("cpu_used") else 0)
-            module_memory_usage_allocated.labels(module=module_name).set(round(allocated_memory, 2))
-            module_memory_usage_total.labels(module=module_name).set(module_data["memory_used"] if module_data.get("memory_used") else 0)
-            module_vsz.labels(module=module_name).set(module_data["vsz"] if module_data.get("vsz") else 0)
-            module_rss.labels(module=module_name).set(module_data["rss"] if module_data.get("rss") else 0)
+                # Only update other metrics if module is alive
+                if module_data.get("status") == "Alive":
+                    # Update PID if available
+                    if module_data.get("pid"):
+                        pid.labels(module=module_name).set(module_data["pid"])
+                    
+                    # Update CPU usage if available
+                    if module_data.get("cpu_used"):
+                        module_cpu_usage.labels(module=module_name).set(module_data["cpu_used"])
+                    
+                    # Update memory metrics if available
+                    if module_data.get("memory_used"):
+                        module_memory_usage_total.labels(module=module_name).set(module_data["memory_used"])
+                    
+                    # Update VSZ and RSS if both are available
+                    if module_data.get("vsz") and module_data.get("rss"):
+                        module_vsz.labels(module=module_name).set(module_data["vsz"])
+                        module_rss.labels(module=module_name).set(module_data["rss"])
+                        
+                        # Calculate allocated memory
+                        if module_data["vsz"] > 0:
+                            allocated_memory = (module_data["rss"] / module_data["vsz"]) * 100
+                            module_memory_usage_allocated.labels(module=module_name).set(round(allocated_memory, 2))
+                else:
+                    # Reset metrics for non-alive modules
+                    pid.labels(module=module_name).set(0)
+                    module_cpu_usage.labels(module=module_name).set(0)
+                    module_memory_usage_total.labels(module=module_name).set(0)
+                    module_memory_usage_allocated.labels(module=module_name).set(0)
+                    module_vsz.labels(module=module_name).set(0)
+                    module_rss.labels(module=module_name).set(0)
+
+            except Exception as e:
+                logging.error(f"Error updating metrics for module {module_name}: {str(e)}")
+                continue
+
     except Exception as e:
-        logging.error(f"Error updating metrics: {e}")
+        logging.error(f"Error updating metrics: {str(e)}")
 
 @app.get("/")
 async def root():
@@ -265,23 +282,17 @@ async def metrics():
         media_type=CONTENT_TYPE_LATEST
     )
 
-@app.get("/restart/{module_name}")
-async def restart_module(module_name: str):
+@app.get("/restart/{pid}")
+async def restart_module(pid: int):
     try:
-        pid = cek_module_pid(module_name)
-        if pid is None:
-            return {"success": False, "error": "Module not found"}
         subprocess.run(["restart", str(pid)], check=True)
         return {"success": True}
     except subprocess.CalledProcessError as e:
         return {"success": False, "error": str(e)}
 
-@app.get("/stop/{module_name}")
-async def stop_module(module_name: str):
+@app.get("/stop/{pid}")
+async def stop_module(pid: int):
     try:
-        pid = cek_module_pid(module_name)
-        if pid is None:
-            return {"success": False, "error": "Module not found"}
         subprocess.run(["stopmodule", str(pid)], check=True)
         return {"success": True}
     except subprocess.CalledProcessError as e:
