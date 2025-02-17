@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ndawinata/ew_exporter/refs/heads/main/ew_text putih.png" width="50" height="50" style="border-radius: 50%;">
+  <img src="https://raw.githubusercontent.com/ndawinata/ew_exporter/refs/heads/main/ew_text putih.png" width="100" height="100" style="border-radius: 50%;">
 </p>
 
 
