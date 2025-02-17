@@ -1,3 +1,8 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ndawinata/ew_exporter/refs/heads/main/logo.png" width="50" height="50" style="border-radius: 50%;">
+</p>
+
+
 # Earthworm Exporter
 
 Prometheus exporter for Earthworm seismic processing system metrics, written in Python.
