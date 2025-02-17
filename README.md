@@ -98,6 +98,49 @@ The exporter runs as a systemd service with the following features:
 - Process isolation
 - Proper logging
 
+## API Endpoints
+
+The exporter provides the following HTTP endpoints:
+
+| Endpoint | Method | Description |
+|----------|---------|-------------|
+| `/` | GET | Basic information about the exporter |
+| `/metrics` | GET | Prometheus metrics |
+| `/restart/{module_name}` | GET | Restart a specific Earthworm module |
+| `/stop/{module_name}` | GET | Stop a specific Earthworm module |
+
+### Module Management Endpoints
+
+#### Restart Module
+```
+GET /restart/{module_name}
+```
+Restarts the specified Earthworm module.
+
+Response codes:
+- 200: Module successfully restarted
+- 404: Module not found
+- 500: Failed to restart module
+
+Example response (success):
+```json
+{
+    "success": true,
+    "message": "Successfully restarted module 'tpd_pick' (PID: 12345)"
+}
+```
+
+#### Stop Module
+```
+GET /stop/{module_name}
+```
+Stops the specified Earthworm module.
+
+Response codes:
+- 200: Module successfully stopped
+- 404: Module not found
+- 500: Failed to stop module
+
 ## Metrics
 
 The exporter exposes the following metrics at `/metrics`:
@@ -108,16 +151,27 @@ The exporter exposes the following metrics at `/metrics`:
 |--------|-------------|------|
 | `ew_disk_space_bytes` | Available disk space in bytes | Gauge |
 
-
 ### Module Metrics
 
 | Metric | Description | Type | Labels |
 |--------|-------------|------|--------|
-| `ew_module_status` | Earthworm Module status (3=Not Exec, 2=Zombie, 1=Alive, 0=Dead) | Gauge | module |
-| `ew_module_cpu_usage` | Earthworm Module CPU usage (%) | Gauge | module |
-| `ew_module_memory_usage` | Earthworm Module Memory usage (%) | Gauge | module |
-| `ew_module_vsz` | Earthworm Module Virtual memory size (vsz) | Gauge | module |
-| `ew_module_rss` | Earthworm Module Resident set size (rss) | Gauge | module |
+| `ew_module_pid` | Earthworm Module PID | Gauge | module |
+| `ew_module_status` | Module status (5=Status Error, 4=Not Exec, 3=Zombie, 2=Dead, 1=Stop, 0=Alive) | Gauge | module |
+| `ew_module_cpu_usage` | CPU usage per module (%) | Gauge | module |
+| `ew_module_memory_usage_total` | Total memory usage per module (%) | Gauge | module |
+| `ew_module_memory_usage_allocated` | Allocated memory usage per module (%) | Gauge | module |
+| `ew_module_virtual_memory` | Virtual memory size (vsz) in kb | Gauge | module |
+| `ew_module_resident_memory` | Resident set size (rss) in kb | Gauge | module |
+
+### Metric Details
+
+#### Status Values
+- 5: Status Error
+- 4: Not Exec
+- 3: Zombie
+- 2: Dead
+- 1: Stop
+- 0: Alive
 
 ## Prometheus Configuration
 

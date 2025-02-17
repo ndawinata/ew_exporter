@@ -1,6 +1,6 @@
 import json
 import time
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, HTTPException, status
 from prometheus_client import (
     Gauge, 
     generate_latest, 
@@ -198,17 +198,43 @@ def get_earthworm_status() -> Dict[str, Any]:
     except Exception as e:
         logging.error(f"Error: {e}")
         return None
-    
-def cek_module_pid(module_name: str) -> int:
+
+def get_process_info() -> Dict[str, str]:
     try:
-        result = subprocess.run(f'ps aux | grep -E "{module_name}" | grep -v grep', shell=True, capture_output=True, text=True)
-        output = result.stdout
-        if output:
-            return int(output.split()[1])
-        else:
-            return None
-    except subprocess.CalledProcessError:
-        return None
+        # Run status command
+        result = subprocess.run(
+            ["status"], 
+            capture_output=True, 
+            text=True, 
+            check=True
+        )
+        
+        processes = {}
+        process_section = False
+        
+        # Parse output line by line
+        for line in result.stdout.split("\n"):
+            # Detect start of process section
+            if "Process  Process" in line or "Name" in line or "-------" in line:
+                process_section = True
+                continue
+            
+            # Parse process lines
+            if process_section and line.strip():
+                parts = line.split()
+                if len(parts) >= 3:  # Minimal: name, id, status
+                    process_name = parts[0]
+                    process_id = parts[1]
+                    processes[process_name] = process_id
+        
+        return processes
+
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error running status command: {e}")
+        return {}
+    except Exception as e:
+        logging.error(f"Error parsing status output: {e}")
+        return {}
 
 def update_metrics() -> None:
     data = get_earthworm_status()
@@ -223,16 +249,16 @@ def update_metrics() -> None:
             
             if module_data.get("status") is not None:
                 status_value = {
-                    "Not Exec": 5,
-                    "Zombie": 4,
-                    "Dead": 3,
-                    "Stop": 2,
-                    "Alive": 1
+                    "Not Exec": 4,
+                    "Zombie": 3,
+                    "Dead": 2,
+                    "Stop": 1,
+                    "Alive": 0
                 }.get(module_data["status"])
                 module_status.labels(module=module_name).set(status_value)
             else:
                 # 0 = Status Error
-                module_status.labels(module=module_name).set(0)
+                module_status.labels(module=module_name).set(5)
 
             allocated_memory = 0
             if module_data.get("rss") is not None and module_data.get("vsz") is not None:
@@ -271,24 +297,62 @@ async def metrics():
 @app.get("/restart/{module_name}")
 async def restart_module(module_name: str):
     try:
-        pid = cek_module_pid(module_name)
+        # Get process info
+        pid = get_process_info().get(module_name)
         if pid is None:
-            return {"success": False, "error": "Module not found"}
-        subprocess.run(["restart", str(pid)], check=True)
-        return {"success": True}
-    except subprocess.CalledProcessError as e:
-        return {"success": False, "error": str(e)}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Module '{module_name}' not found"
+            )
+
+        # Try to restart
+        try:
+            subprocess.run(["restart", str(pid)], check=True)
+            return {
+                "success": True,
+                "message": f"Successfully restarted module '{module_name}' (PID: {pid})"
+            }
+        except subprocess.CalledProcessError as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to restart module '{module_name}': {str(e)}"
+            )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unexpected error: {str(e)}"
+        )
 
 @app.get("/stop/{module_name}")
 async def stop_module(module_name: str):
     try:
-        pid = cek_module_pid(module_name)
+        # Get process info
+        pid = get_process_info().get(module_name)
         if pid is None:
-            return {"success": False, "error": "Module not found"}
-        subprocess.run(["stopmodule", str(pid)], check=True)
-        return {"success": True}
-    except subprocess.CalledProcessError as e:
-        return {"success": False, "error": str(e)}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Module '{module_name}' not found"
+            )
+
+        # Try to stop
+        try:
+            subprocess.run(["stopmodule", str(pid)], check=True)
+            return {
+                "success": True,
+                "message": f"Successfully stopped module '{module_name}' (PID: {pid})"
+            }
+        except subprocess.CalledProcessError as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to stop module '{module_name}': {str(e)}"
+            )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unexpected error: {str(e)}"
+        )
 
 if __name__ == "__main__":
     host = config.get('server', 'host', fallback='localhost')
